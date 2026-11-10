@@ -136,6 +136,19 @@ test('types fall back to a place rather than guessing a category', () => {
   assert.deepEqual(typesFromNominatim({ class: 'highway', type: 'primary' }), [
     'route',
   ]);
+  assert.deepEqual(typesFromNominatim({ addresstype: 'borough' }), [
+    'sublocality',
+    'sublocality_level_1',
+    'political',
+  ]);
+  assert.deepEqual(typesFromNominatim({ addresstype: 'museum' }), [
+    'museum',
+    'point_of_interest',
+    'establishment',
+  ]);
+  assert.deepEqual(typesFromNominatim({ class: 'railway', type: 'station' }), [
+    'transit_station',
+  ]);
   assert.deepEqual(typesFromNominatim({}), [
     'point_of_interest',
     'establishment',
@@ -149,6 +162,10 @@ test('types fall back to a place rather than guessing a category', () => {
 test('a viewport hint is sent only when every edge is a real coordinate', () => {
   assert.equal(
     nominatimViewboxFromBounds('30.1,-97.95|30.52,-97.55'),
+    '-97.95,30.52,-97.55,30.1',
+  );
+  assert.equal(
+    nominatimViewboxFromBounds(' 30.1 , -97.95 | 30.52 , -97.55 '),
     '-97.95,30.52,-97.55,30.1',
   );
 
