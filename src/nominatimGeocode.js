@@ -16,6 +16,7 @@ const ADDRESS_TYPE_MAP = Object.freeze({
   region: ['administrative_area_level_1', 'political'],
   county: ['administrative_area_level_2', 'political'],
   district: ['administrative_area_level_2', 'political'],
+  subdivision: ['administrative_area_level_2', 'political'],
   municipality: ['locality', 'political'],
   city: ['locality', 'political'],
   town: ['locality', 'political'],
@@ -24,6 +25,7 @@ const ADDRESS_TYPE_MAP = Object.freeze({
   suburb: ['neighborhood', 'political'],
   neighbourhood: ['neighborhood', 'political'],
   neighborhood: ['neighborhood', 'political'],
+  borough: ['sublocality', 'sublocality_level_1', 'political'],
   quarter: ['neighborhood', 'political'],
   postcode: ['postal_code'],
   road: ['route'],
@@ -39,6 +41,17 @@ const ADDRESS_TYPE_MAP = Object.freeze({
   university: ['university'],
   stadium: ['stadium'],
   island: ['natural_feature'],
+  harbour: ['natural_feature'],
+  bay: ['natural_feature'],
+  river: ['natural_feature'],
+  lake: ['natural_feature'],
+  sea: ['natural_feature'],
+  ocean: ['natural_feature'],
+  volcano: ['natural_feature'],
+  hotel: ['lodging', 'point_of_interest', 'establishment'],
+  motel: ['lodging', 'point_of_interest', 'establishment'],
+  museum: ['museum', 'point_of_interest', 'establishment'],
+  hospital: ['hospital', 'health', 'point_of_interest', 'establishment'],
 });
 
 /**
@@ -80,6 +93,8 @@ export function typesFromNominatim(hit) {
     ADDRESS_TYPE_MAP[addresstype] ||
     ADDRESS_TYPE_MAP[osmType] ||
     (osmClass === 'highway' ? ['route'] : null) ||
+    (osmClass === 'railway' ? ['transit_station'] : null) ||
+    (osmClass === 'boundary' ? ['political'] : null) ||
     (osmClass === 'leisure' ? ['park'] : null) ||
     (osmClass === 'natural' ? ['natural_feature'] : null) ||
     (osmClass === 'aeroway' ? ['airport'] : null) ||
@@ -147,9 +162,8 @@ export function nominatimToGeocodeResult(hit) {
  * Translate a `swLat,swLng|neLat,neLng` bias into Nominatim's
  * `viewbox=west,north,east,south`, or null when the string is unusable.
  *
- * Both edges are range-checked. A viewbox naming a longitude of 999 is not a
- * hint the upstream can use, and sending it is a malformed request rather than
- * a soft one.
+ * Both edges are range-checked. Tolerates whitespace around delimiter commas
+ * and pipe symbols.
  *
  * @param {string} bounds
  * @returns {string|null}
@@ -158,7 +172,7 @@ export function nominatimViewboxFromBounds(bounds) {
   const match = String(bounds || '')
     .trim()
     .match(
-      /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\|(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/,
+      /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\|\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/,
     );
   if (!match) return null;
   const swLat = nominatimLatitude(match[1]);
