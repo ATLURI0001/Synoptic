@@ -69,6 +69,14 @@ test('acquisitionMsUtc: "0" = midnight UTC; garbage → NaN', () => {
   );
   assert.ok(Number.isNaN(acquisitionMsUtc('not-a-date', '1006')));
   assert.ok(Number.isNaN(acquisitionMsUtc('2026-07-16', 'xx')));
+  // Calendar rollover dates (e.g. Feb 30, Apr 31, non-leap Feb 29) -> NaN
+  assert.ok(Number.isNaN(acquisitionMsUtc('2026-02-30', '1006')));
+  assert.ok(Number.isNaN(acquisitionMsUtc('2026-04-31', '1006')));
+  assert.ok(Number.isNaN(acquisitionMsUtc('2026-02-29', '1006')));
+  assert.equal(
+    acquisitionMsUtc('2024-02-29', '1006'),
+    Date.UTC(2024, 1, 29, 10, 6),
+  );
 });
 
 test('header-only input → []', () => {
@@ -90,6 +98,9 @@ test('malformed rows are skipped, valid rows kept', () => {
     'not,enough,fields',
     'garbage-line-with-no-commas',
     'NaN,-121.67046,303.6,0.39,0.36,2026-07-16,1006,N20,VIIRS,n,2.0NRT,290.73,0.53,N',
+    ',-121.67046,303.6,0.39,0.36,2026-07-16,1006,N20,VIIRS,n,2.0NRT,290.73,0.53,N',
+    '95.0,-121.67046,303.6,0.39,0.36,2026-07-16,1006,N20,VIIRS,n,2.0NRT,290.73,0.53,N',
+    '38.99488,-181.5,303.6,0.39,0.36,2026-07-16,1006,N20,VIIRS,n,2.0NRT,290.73,0.53,N',
     '38.99488,-121.67046,303.6,0.39,0.36,2026-07-16,1006,N20,VIIRS,n,2.0NRT,290.73,0.53,N',
   ].join('\n');
   const records = parseFirmsCsv(text);
