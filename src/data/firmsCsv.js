@@ -97,9 +97,21 @@ export function parseFirmsCsv(text) {
     if (!line) continue;
     const parts = line.split(',');
     if (parts.length < header.length) continue; // malformed row — skip
-    const lat = Number(parts[iLat]);
-    const lon = Number(parts[iLon]);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    const latText = parts[iLat]?.trim() ?? '';
+    const lonText = parts[iLon]?.trim() ?? '';
+    if (!latText || !lonText) continue;
+    const lat = Number(latText);
+    const lon = Number(lonText);
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon) ||
+      lat < -90 ||
+      lat > 90 ||
+      lon < -180 ||
+      lon > 180
+    ) {
+      continue;
+    }
 
     records.push({
       lat,
@@ -145,9 +157,19 @@ export function acquisitionMsUtc(acqDate, acqTime) {
     day > 31 ||
     hours > 23 ||
     minutes > 59
-  )
+  ) {
     return NaN;
-  return Date.UTC(year, month - 1, day, hours, minutes);
+  }
+  const ms = Date.UTC(year, month - 1, day, hours, minutes);
+  const check = new Date(ms);
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    return NaN;
+  }
+  return ms;
 }
 
 /**
