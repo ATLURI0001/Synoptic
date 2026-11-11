@@ -7,6 +7,13 @@ import {
   bearingBetweenCoordinates,
   cockpitAnchorCorrectionStep,
   cockpitAltitudeDisplayFt,
+  celsiusToFahrenheit,
+  fahrenheitToCelsius,
+  celsiusToKelvin,
+  hpaToInHg,
+  inHgToHpa,
+  knotsToMps,
+  mpsToKnots,
   cockpitGroundSafeHeight,
   cockpitSurfaceWaitExpired,
   cockpitUiUpdateDue,
@@ -363,4 +370,22 @@ test('tracked-identity resolution falls back to layer precedence', () => {
   assert.equal(resolveTrackedAircraftInfo({ military, trackedId: '' }).layerId, 'military');
   assert.equal(resolveTrackedAircraftInfo({ trackedId: 'flights:aaa077' }), null);
   assert.equal(resolveTrackedAircraftInfo(), null);
+});
+
+test('telemetry unit conversions maintain exact precision and guard invalid values', () => {
+  // Exact foot conversion avoids 0.00032 drift on FL100
+  assert.equal(cockpitAltitudeDisplayFt(3048, false), 10000);
+
+  // Temperature conversions
+  assert.equal(celsiusToFahrenheit(0), 32);
+  assert.equal(celsiusToFahrenheit(100), 212);
+  assert.equal(fahrenheitToCelsius(212), 100);
+  assert.equal(celsiusToKelvin(-300), 0); // clamped at absolute zero
+  assert.equal(celsiusToFahrenheit(Number.NaN), null);
+
+  // Pressure and speed round-trip accuracy
+  assert.equal(inHgToHpa(hpaToInHg(1013.25)), 1013.25);
+  assert.equal(hpaToInHg(-5), null);
+  assert.ok(Math.abs(mpsToKnots(knotsToMps(250)) - 250) < 1e-5);
+  assert.equal(knotsToMps(-1), null);
 });

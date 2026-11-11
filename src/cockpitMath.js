@@ -80,7 +80,55 @@ export function cockpitGroundSafeHeight(
  */
 export function cockpitAltitudeDisplayFt(altitudeM, onGround) {
   if (onGround === true) return 0;
-  return Number.isFinite(altitudeM) ? altitudeM * 3.28084 : null;
+  return Number.isFinite(altitudeM) ? altitudeM / 0.3048 : null;
+}
+
+/** Round to clean IEEE-754 decimal precision without float representation noise. */
+function cleanPrecision(value, decimals = 6) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+/** Convert Celsius to Fahrenheit with NaN/non-finite guard and IEEE-754 precision smoothing. */
+export function celsiusToFahrenheit(c) {
+  if (!Number.isFinite(c)) return null;
+  return cleanPrecision((c * 9) / 5 + 32);
+}
+
+/** Convert Fahrenheit to Celsius with NaN/non-finite guard and IEEE-754 precision smoothing. */
+export function fahrenheitToCelsius(f) {
+  if (!Number.isFinite(f)) return null;
+  return cleanPrecision(((f - 32) * 5) / 9);
+}
+
+/** Convert Celsius to Kelvin, clamping unphysical temperatures below absolute zero. */
+export function celsiusToKelvin(c) {
+  if (!Number.isFinite(c)) return null;
+  return cleanPrecision(Math.max(0, c + 273.15));
+}
+
+/** Convert hectopascals (hPa) to inches of mercury (inHg). */
+export function hpaToInHg(hpa) {
+  if (!Number.isFinite(hpa) || hpa < 0) return null;
+  return cleanPrecision(hpa * 0.029529983071445, 4);
+}
+
+/** Convert inches of mercury (inHg) to hectopascals (hPa). */
+export function inHgToHpa(inHg) {
+  if (!Number.isFinite(inHg) || inHg < 0) return null;
+  return cleanPrecision(inHg / 0.029529983071445, 2);
+}
+
+/** Convert knots to meters per second. */
+export function knotsToMps(knots) {
+  if (!Number.isFinite(knots) || knots < 0) return null;
+  return cleanPrecision(knots * 0.514444);
+}
+
+/** Convert meters per second to knots. */
+export function mpsToKnots(mps) {
+  if (!Number.isFinite(mps) || mps < 0) return null;
+  return cleanPrecision(mps / 0.514444);
 }
 
 /** Format the cockpit Context scope without overstating installation coverage. */
