@@ -389,3 +389,29 @@ test('telemetry unit conversions maintain exact precision and guard invalid valu
   assert.ok(Math.abs(mpsToKnots(knotsToMps(250)) - 250) < 1e-5);
   assert.equal(knotsToMps(-1), null);
 });
+
+test('missing or undefined identifiers never falsely match tracked aircraft', () => {
+  const unident = resolveCockpitContextReadout({
+    snapshot: contextSnapshot({ label: 'UNKNOWN' }),
+    info: { callsign: 'N/A' },
+  });
+  assert.equal(unident.subjectMatchesTracked, false);
+  assert.equal(unident.aircraftRelative, false);
+  assert.equal(unident.mode, 'foreign');
+
+  const mixedCase = resolveCockpitContextReadout({
+    snapshot: contextSnapshot({ layerId: 'flights', id: 'AAA077' }),
+    info: TRACKED_INFO,
+  });
+  assert.equal(mixedCase.subjectMatchesTracked, true);
+  assert.equal(mixedCase.aircraftRelative, true);
+
+  assert.equal(
+    resolveTrackedAircraftInfo({
+      civilian: { id: 'aaa077' },
+      military: { icao24: 'ae01ce' },
+      trackedId: 'flights:aaa077',
+    }).layerId,
+    'flights',
+  );
+});

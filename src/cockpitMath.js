@@ -314,10 +314,14 @@ export function resolveTrackedAircraftInfo({
     .trim()
     .toLowerCase();
   if (trackedKey) {
-    const owner = candidates.find(
-      (candidate) =>
-        `${candidate.layerId}:${candidate.icao24}`.toLowerCase() === trackedKey,
-    );
+    const owner = candidates.find((candidate) => {
+      const candidateId = candidate.icao24 ?? candidate.id;
+      if (candidateId == null || candidateId === '') return false;
+      return (
+        `${candidate.layerId}:${String(candidateId).trim()}`.toLowerCase() ===
+        trackedKey
+      );
+    });
     if (owner) return owner;
   }
   return candidates[0];
@@ -351,9 +355,17 @@ export function resolveCockpitContextReadout({
     };
   }
   const trackedId = info?.icao24 ?? info?.id;
+  const subjectLayer = snapshot.subject?.layerId;
+  const infoLayer = info?.layerId;
+  const subjectId = snapshot.subject?.id;
   const subjectMatchesTracked =
-    snapshot.subject?.layerId === info?.layerId &&
-    String(snapshot.subject?.id) === String(trackedId);
+    Boolean(subjectLayer && infoLayer && subjectLayer === infoLayer) &&
+    subjectId != null &&
+    String(subjectId).trim() !== '' &&
+    trackedId != null &&
+    String(trackedId).trim() !== '' &&
+    String(subjectId).trim().toLowerCase() ===
+      String(trackedId).trim().toLowerCase();
   // `subjectPresent` is absent on snapshots built before the presence signal
   // existed; only an explicit `false` means the subject left its source.
   const contactLost = snapshot.subjectPresent === false;
