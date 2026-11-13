@@ -163,6 +163,7 @@ export function compassDivisions(heading) {
 
 /** Format a compass division as a cardinal/intercardinal label or degrees. */
 export function formatCompassDivision(heading) {
+  if (!Number.isFinite(heading)) return '---';
   const normalized = normalizeHeading(heading);
   const labels = new Map([
     [0, 'N'],
@@ -269,6 +270,18 @@ export function formatSpeedRulerTick(valueKt) {
 /** Return the initial great-circle bearing between two latitude/longitude points. */
 export function bearingBetweenCoordinates(fromLat, fromLon, toLat, toLon) {
   if (![fromLat, fromLon, toLat, toLon].every(Number.isFinite)) return null;
+  if (
+    fromLat < -90 ||
+    fromLat > 90 ||
+    toLat < -90 ||
+    toLat > 90 ||
+    fromLon < -180 ||
+    fromLon > 180 ||
+    toLon < -180 ||
+    toLon > 180
+  ) {
+    return null;
+  }
   const φ1 = (fromLat * Math.PI) / 180;
   const φ2 = (toLat * Math.PI) / 180;
   const Δλ = ((toLon - fromLon) * Math.PI) / 180;
@@ -277,6 +290,36 @@ export function bearingBetweenCoordinates(fromLat, fromLon, toLat, toLon) {
     Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
   if (Math.abs(x) < 1e-12 && Math.abs(y) < 1e-12) return null;
   return normalizeHeading((Math.atan2(y, x) * 180) / Math.PI);
+}
+
+/**
+ * Return the great-circle distance between two latitude/longitude points in meters using the haversine formula.
+ * Returns null if any coordinate is non-finite or out of geographical bounds [-90, 90] / [-180, 180].
+ */
+export function distanceBetweenCoordinates(fromLat, fromLon, toLat, toLon) {
+  if (![fromLat, fromLon, toLat, toLon].every(Number.isFinite)) return null;
+  if (
+    fromLat < -90 ||
+    fromLat > 90 ||
+    toLat < -90 ||
+    toLat > 90 ||
+    fromLon < -180 ||
+    fromLon > 180 ||
+    toLon < -180 ||
+    toLon > 180
+  ) {
+    return null;
+  }
+  const R = 6371000;
+  const φ1 = (fromLat * Math.PI) / 180;
+  const φ2 = (toLat * Math.PI) / 180;
+  const Δφ = ((toLat - fromLat) * Math.PI) / 180;
+  const Δλ = ((toLon - fromLon) * Math.PI) / 180;
+  const a =
+    Math.sin(Δφ / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(Math.max(0, Math.min(1, a))), Math.sqrt(Math.max(0, 1 - a)));
+  return cleanPrecision(R * c, 2);
 }
 
 /** Return a target bearing relative to the current heading in the [-180, 180) range. */

@@ -5,6 +5,7 @@ import {
   altitudeRulerTicks,
   altitudeRulerCurveInset,
   bearingBetweenCoordinates,
+  distanceBetweenCoordinates,
   cockpitAnchorCorrectionStep,
   cockpitAltitudeDisplayFt,
   celsiusToFahrenheit,
@@ -159,12 +160,31 @@ test('compass divisions remain ordered across north', () => {
 test('compass labels use cardinals where exact and degrees elsewhere', () => {
   assert.equal(formatCompassDivision(270), 'W');
   assert.equal(formatCompassDivision(30), '030');
+  assert.equal(formatCompassDivision(NaN), '---');
+  assert.equal(formatCompassDivision(null), '---');
 });
 
 test('great-circle bearing resolves cardinal directions', () => {
   assert.ok(Math.abs(bearingBetweenCoordinates(0, 0, 1, 0) - 0) < 0.001);
   assert.ok(Math.abs(bearingBetweenCoordinates(0, 0, 0, 1) - 90) < 0.001);
   assert.equal(bearingBetweenCoordinates(0, 0, 0, 0), null);
+  assert.equal(bearingBetweenCoordinates(95, 0, 0, 0), null);
+  assert.equal(bearingBetweenCoordinates(0, 0, 0, 190), null);
+  assert.equal(bearingBetweenCoordinates(NaN, 0, 0, 0), null);
+});
+
+test('distanceBetweenCoordinates calculates haversine distance and guards out-of-range inputs', () => {
+  // Distance from (0,0) to (0,0) is 0
+  assert.equal(distanceBetweenCoordinates(0, 0, 0, 0), 0);
+  // ~1 degree of latitude at equator is ~111.19 km (111194.93 m)
+  const dist = distanceBetweenCoordinates(0, 0, 1, 0);
+  assert.ok(dist > 110000 && dist < 112000);
+  // Out of range coordinates return null
+  assert.equal(distanceBetweenCoordinates(95, 0, 0, 0), null);
+  assert.equal(distanceBetweenCoordinates(-91, 0, 0, 0), null);
+  assert.equal(distanceBetweenCoordinates(0, 185, 0, 0), null);
+  assert.equal(distanceBetweenCoordinates(0, -181, 0, 0), null);
+  assert.equal(distanceBetweenCoordinates(NaN, 0, 0, 0), null);
 });
 
 test('relative bearing stays on the shortest signed arc', () => {
