@@ -131,6 +131,18 @@ export function mpsToKnots(mps) {
   return cleanPrecision(mps / 0.514444);
 }
 
+/** Convert knots to kilometers per hour (1 kt = 1.852 km/h). */
+export function knotsToKmh(knots) {
+  if (!Number.isFinite(knots) || knots < 0) return null;
+  return cleanPrecision(knots * 1.852, 2);
+}
+
+/** Convert kilometers per hour to knots. */
+export function kmhToKnots(kmh) {
+  if (!Number.isFinite(kmh) || kmh < 0) return null;
+  return cleanPrecision(kmh / 1.852, 2);
+}
+
 /** Convert meters to international nautical miles (1 NM = 1852 meters). */
 export function metersToNauticalMiles(meters) {
   if (!Number.isFinite(meters) || meters < 0) return null;
@@ -376,6 +388,30 @@ export function midpointCoordinates(fromLat, fromLon, toLat, toLon) {
   const λ3 = (fromLon * Math.PI) / 180 + Math.atan2(By, Math.cos(φ1) + Bx);
   const latDeg = cleanPrecision((φ3 * 180) / Math.PI, 6);
   const lonDeg = cleanPrecision(((((λ3 * 180) / Math.PI + 540) % 360) - 180), 6);
+  return { lat: latDeg, lon: lonDeg };
+}
+
+/**
+ * Calculate the destination coordinate given a starting point, distance (meters), and initial bearing (degrees).
+ * Returns { lat, lon } or null if parameters are non-finite or out of geographical bounds.
+ */
+export function destinationCoordinate(lat, lon, distanceM, bearingDeg) {
+  if (![lat, lon, distanceM, bearingDeg].every(Number.isFinite)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180 || distanceM < 0) return null;
+  const R = 6371000;
+  const δ = distanceM / R;
+  const θ = (normalizeHeading(bearingDeg) * Math.PI) / 180;
+  const φ1 = (lat * Math.PI) / 180;
+  const λ1 = (lon * Math.PI) / 180;
+
+  const sinφ2 = Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ);
+  const φ2 = Math.asin(Math.max(-1, Math.min(1, sinφ2)));
+  const y = Math.sin(θ) * Math.sin(δ) * Math.cos(φ1);
+  const x = Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2);
+  const λ2 = λ1 + Math.atan2(y, x);
+
+  const latDeg = cleanPrecision((φ2 * 180) / Math.PI, 6);
+  const lonDeg = cleanPrecision(((((λ2 * 180) / Math.PI + 540) % 360) - 180), 6);
   return { lat: latDeg, lon: lonDeg };
 }
 
