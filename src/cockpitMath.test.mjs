@@ -6,6 +6,7 @@ import {
   altitudeRulerCurveInset,
   bearingBetweenCoordinates,
   distanceBetweenCoordinates,
+  midpointCoordinates,
   cockpitAnchorCorrectionStep,
   cockpitAltitudeDisplayFt,
   celsiusToFahrenheit,
@@ -15,6 +16,10 @@ import {
   inHgToHpa,
   knotsToMps,
   mpsToKnots,
+  metersToNauticalMiles,
+  nauticalMilesToMeters,
+  feetToMeters,
+  metersToFeet,
   cockpitGroundSafeHeight,
   cockpitSurfaceWaitExpired,
   cockpitUiUpdateDue,
@@ -434,4 +439,40 @@ test('missing or undefined identifiers never falsely match tracked aircraft', ()
     }).layerId,
     'flights',
   );
+});
+
+test('aviation length and distance unit conversions preserve precision and guard bounds', () => {
+  // Nautical miles <-> Meters
+  assert.equal(metersToNauticalMiles(1852), 1);
+  assert.equal(metersToNauticalMiles(9260), 5);
+  assert.equal(metersToNauticalMiles(0), 0);
+  assert.equal(metersToNauticalMiles(-100), null);
+  assert.equal(metersToNauticalMiles(NaN), null);
+
+  assert.equal(nauticalMilesToMeters(1), 1852);
+  assert.equal(nauticalMilesToMeters(2.5), 4630);
+  assert.equal(nauticalMilesToMeters(0), 0);
+  assert.equal(nauticalMilesToMeters(-1), null);
+
+  // Feet <-> Meters
+  assert.equal(feetToMeters(1000), 304.8);
+  assert.equal(metersToFeet(304.8), 1000);
+  assert.equal(feetToMeters(NaN), null);
+  assert.equal(metersToFeet(Infinity), null);
+});
+
+test('midpointCoordinates calculates spherical midpoint and guards out-of-range bounds', () => {
+  // Equator segment
+  const eqMid = midpointCoordinates(0, 0, 0, 10);
+  assert.deepEqual(eqMid, { lat: 0, lon: 5 });
+
+  // Antimeridian crossing (+179 to -179) -> midpoint is on the 180th meridian (-180)
+  const antiMid = midpointCoordinates(0, 179, 0, -179);
+  assert.equal(antiMid.lat, 0);
+  assert.equal(Math.abs(antiMid.lon), 180);
+
+  // Out of bounds and non-finite guards
+  assert.equal(midpointCoordinates(95, 0, 0, 0), null);
+  assert.equal(midpointCoordinates(0, 185, 0, 0), null);
+  assert.equal(midpointCoordinates(0, 0, NaN, 0), null);
 });
