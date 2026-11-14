@@ -131,6 +131,30 @@ export function mpsToKnots(mps) {
   return cleanPrecision(mps / 0.514444);
 }
 
+/** Convert meters to international nautical miles (1 NM = 1852 meters). */
+export function metersToNauticalMiles(meters) {
+  if (!Number.isFinite(meters) || meters < 0) return null;
+  return cleanPrecision(meters / 1852, 4);
+}
+
+/** Convert international nautical miles to meters. */
+export function nauticalMilesToMeters(nm) {
+  if (!Number.isFinite(nm) || nm < 0) return null;
+  return cleanPrecision(nm * 1852, 2);
+}
+
+/** Convert feet to meters (1 ft = 0.3048 m). */
+export function feetToMeters(feet) {
+  if (!Number.isFinite(feet)) return null;
+  return cleanPrecision(feet * 0.3048, 4);
+}
+
+/** Convert meters to feet. */
+export function metersToFeet(meters) {
+  if (!Number.isFinite(meters)) return null;
+  return cleanPrecision(meters / 0.3048, 4);
+}
+
 /** Format the cockpit Context scope without overstating installation coverage. */
 export function formatCockpitContextScope(
   subjectLabel,
@@ -320,6 +344,39 @@ export function distanceBetweenCoordinates(fromLat, fromLon, toLat, toLon) {
     Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(Math.max(0, Math.min(1, a))), Math.sqrt(Math.max(0, 1 - a)));
   return cleanPrecision(R * c, 2);
+}
+
+/**
+ * Return the geodesic midpoint between two latitude/longitude points on the sphere.
+ * Returns null if any coordinate is non-finite or out of geographical bounds.
+ */
+export function midpointCoordinates(fromLat, fromLon, toLat, toLon) {
+  if (![fromLat, fromLon, toLat, toLon].every(Number.isFinite)) return null;
+  if (
+    fromLat < -90 ||
+    fromLat > 90 ||
+    toLat < -90 ||
+    toLat > 90 ||
+    fromLon < -180 ||
+    fromLon > 180 ||
+    toLon < -180 ||
+    toLon > 180
+  ) {
+    return null;
+  }
+  const φ1 = (fromLat * Math.PI) / 180;
+  const φ2 = (toLat * Math.PI) / 180;
+  const Δλ = ((toLon - fromLon) * Math.PI) / 180;
+  const Bx = Math.cos(φ2) * Math.cos(Δλ);
+  const By = Math.cos(φ2) * Math.sin(Δλ);
+  const φ3 = Math.atan2(
+    Math.sin(φ1) + Math.sin(φ2),
+    Math.sqrt((Math.cos(φ1) + Bx) ** 2 + By ** 2),
+  );
+  const λ3 = (fromLon * Math.PI) / 180 + Math.atan2(By, Math.cos(φ1) + Bx);
+  const latDeg = cleanPrecision((φ3 * 180) / Math.PI, 6);
+  const lonDeg = cleanPrecision(((((λ3 * 180) / Math.PI + 540) % 360) - 180), 6);
+  return { lat: latDeg, lon: lonDeg };
 }
 
 /** Return a target bearing relative to the current heading in the [-180, 180) range. */
