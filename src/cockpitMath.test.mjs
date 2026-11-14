@@ -16,10 +16,13 @@ import {
   inHgToHpa,
   knotsToMps,
   mpsToKnots,
+  knotsToKmh,
+  kmhToKnots,
   metersToNauticalMiles,
   nauticalMilesToMeters,
   feetToMeters,
   metersToFeet,
+  destinationCoordinate,
   cockpitGroundSafeHeight,
   cockpitSurfaceWaitExpired,
   cockpitUiUpdateDue,
@@ -475,4 +478,33 @@ test('midpointCoordinates calculates spherical midpoint and guards out-of-range 
   assert.equal(midpointCoordinates(95, 0, 0, 0), null);
   assert.equal(midpointCoordinates(0, 185, 0, 0), null);
   assert.equal(midpointCoordinates(0, 0, NaN, 0), null);
+});
+
+test('knots and km/h speed conversions preserve precision and guard bounds', () => {
+  assert.equal(knotsToKmh(100), 185.2);
+  assert.equal(knotsToKmh(0), 0);
+  assert.equal(knotsToKmh(-10), null);
+  assert.equal(knotsToKmh(NaN), null);
+
+  assert.equal(kmhToKnots(185.2), 100);
+  assert.equal(kmhToKnots(0), 0);
+  assert.equal(kmhToKnots(-50), null);
+  assert.equal(kmhToKnots(Infinity), null);
+});
+
+test('destinationCoordinate computes forward geodesic point and guards out-of-range bounds', () => {
+  // Moving 0 distance keeps same coordinate
+  const same = destinationCoordinate(10, 20, 0, 90);
+  assert.deepEqual(same, { lat: 10, lon: 20 });
+
+  // Moving north from equator along prime meridian
+  const north = destinationCoordinate(0, 0, 111195, 0);
+  assert.equal(Math.round(north.lat), 1);
+  assert.equal(north.lon, 0);
+
+  // Bounds and non-finite guards
+  assert.equal(destinationCoordinate(95, 0, 1000, 0), null);
+  assert.equal(destinationCoordinate(0, 0, -100, 0), null);
+  assert.equal(destinationCoordinate(0, 0, 1000, NaN), null);
+  assert.equal(destinationCoordinate(NaN, 0, 1000, 0), null);
 });
