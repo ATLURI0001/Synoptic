@@ -167,6 +167,40 @@ export function metersToFeet(meters) {
   return cleanPrecision(meters / 0.3048, 4);
 }
 
+/** Convert feet per minute (fpm) to meters per second (mps). */
+export function feetPerMinuteToMps(fpm) {
+  if (!Number.isFinite(fpm)) return null;
+  return cleanPrecision(fpm * 0.00508, 4);
+}
+
+/** Convert meters per second (mps) to feet per minute (fpm). */
+export function mpsToFeetPerMinute(mps) {
+  if (!Number.isFinite(mps)) return null;
+  return cleanPrecision(mps / 0.00508, 2);
+}
+
+/** Convert knots to statute miles per hour (mph). */
+export function knotsToMph(knots) {
+  if (!Number.isFinite(knots) || knots < 0) return null;
+  return cleanPrecision(knots * 1.150779, 3);
+}
+
+/** Convert statute miles per hour (mph) to knots. */
+export function mphToKnots(mph) {
+  if (!Number.isFinite(mph) || mph < 0) return null;
+  return cleanPrecision(mph / 1.150779, 3);
+}
+
+/** Compute coordinated turn radius in meters given ground speed in knots and bank angle in degrees. */
+export function turnRadiusMeters(speedKt, bankAngleDeg) {
+  if (!Number.isFinite(speedKt) || !Number.isFinite(bankAngleDeg)) return null;
+  if (speedKt <= 0 || bankAngleDeg <= 0 || bankAngleDeg >= 90) return null;
+  const speedMps = speedKt * 0.5144444444444445;
+  const rad = (bankAngleDeg * Math.PI) / 180;
+  const radius = (speedMps * speedMps) / (9.80665 * Math.tan(rad));
+  return cleanPrecision(radius, 1);
+}
+
 /** Format the cockpit Context scope without overstating installation coverage. */
 export function formatCockpitContextScope(
   subjectLabel,

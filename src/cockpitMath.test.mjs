@@ -22,6 +22,11 @@ import {
   nauticalMilesToMeters,
   feetToMeters,
   metersToFeet,
+  feetPerMinuteToMps,
+  mpsToFeetPerMinute,
+  knotsToMph,
+  mphToKnots,
+  turnRadiusMeters,
   destinationCoordinate,
   cockpitGroundSafeHeight,
   cockpitSurfaceWaitExpired,
@@ -507,4 +512,41 @@ test('destinationCoordinate computes forward geodesic point and guards out-of-ra
   assert.equal(destinationCoordinate(0, 0, -100, 0), null);
   assert.equal(destinationCoordinate(0, 0, 1000, NaN), null);
   assert.equal(destinationCoordinate(NaN, 0, 1000, 0), null);
+});
+
+test('vertical speed and statute speed unit conversions preserve precision and guard bounds', () => {
+  assert.equal(feetPerMinuteToMps(1000), 5.08);
+  assert.equal(feetPerMinuteToMps(-500), -2.54);
+  assert.equal(feetPerMinuteToMps(0), 0);
+  assert.equal(feetPerMinuteToMps(NaN), null);
+
+  assert.equal(mpsToFeetPerMinute(5.08), 1000);
+  assert.equal(mpsToFeetPerMinute(-2.54), -500);
+  assert.equal(mpsToFeetPerMinute(0), 0);
+  assert.equal(mpsToFeetPerMinute(Infinity), null);
+
+  assert.equal(knotsToMph(100), 115.078);
+  assert.equal(knotsToMph(0), 0);
+  assert.equal(knotsToMph(-20), null);
+  assert.equal(knotsToMph(NaN), null);
+
+  assert.equal(mphToKnots(115.078), 100);
+  assert.equal(mphToKnots(0), 0);
+  assert.equal(mphToKnots(-10), null);
+  assert.equal(mphToKnots(Infinity), null);
+});
+
+test('turnRadiusMeters calculates coordinated turn radius and guards invalid aerodynamics', () => {
+  // Standard rate turn at 150 kt with 25 deg bank
+  const r = turnRadiusMeters(150, 25);
+  assert.ok(r > 1200 && r < 1400);
+
+  // Guards against non-positive speed or non-finite inputs
+  assert.equal(turnRadiusMeters(0, 25), null);
+  assert.equal(turnRadiusMeters(-100, 25), null);
+  assert.equal(turnRadiusMeters(150, 0), null);
+  assert.equal(turnRadiusMeters(150, 90), null);
+  assert.equal(turnRadiusMeters(150, -15), null);
+  assert.equal(turnRadiusMeters(NaN, 25), null);
+  assert.equal(turnRadiusMeters(150, NaN), null);
 });
