@@ -201,6 +201,37 @@ export function turnRadiusMeters(speedKt, bankAngleDeg) {
   return cleanPrecision(radius, 1);
 }
 
+/** Compute rate of turn in degrees per second for a coordinated turn given airspeed in knots and bank angle in degrees. */
+export function rateOfTurnDegPerSec(speedKt, bankAngleDeg) {
+  if (!Number.isFinite(speedKt) || !Number.isFinite(bankAngleDeg)) return null;
+  if (speedKt <= 0 || bankAngleDeg <= 0 || bankAngleDeg >= 90) return null;
+  const speedMps = speedKt * 0.5144444444444445;
+  const rad = (bankAngleDeg * Math.PI) / 180;
+  const omegaRadPerSec = (9.80665 * Math.tan(rad)) / speedMps;
+  return cleanPrecision((omegaRadPerSec * 180) / Math.PI, 2);
+}
+
+/** Convert true airspeed in knots to Mach number given outside air temperature in Celsius (defaults to standard sea level 15°C). */
+export function trueAirspeedToMach(speedKt, tempC = 15) {
+  if (!Number.isFinite(speedKt) || !Number.isFinite(tempC)) return null;
+  if (speedKt < 0 || tempC < -273.15) return null;
+  const speedMps = speedKt * 0.5144444444444445;
+  const tempK = tempC + 273.15;
+  // Speed of sound a = sqrt(gamma * R * T) ≈ 20.0468 * sqrt(T_K)
+  const speedOfSoundMps = Math.sqrt(1.4 * 287.05 * tempK);
+  return cleanPrecision(speedMps / speedOfSoundMps, 3);
+}
+
+/** Compute flight/glide path angle in degrees given vertical speed in feet per minute and ground speed in knots. */
+export function glidePathAngleDeg(verticalSpeedFpm, groundSpeedKt) {
+  if (!Number.isFinite(verticalSpeedFpm) || !Number.isFinite(groundSpeedKt)) return null;
+  if (groundSpeedKt <= 0) return null;
+  const vertSpeedMps = verticalSpeedFpm * 0.00508;
+  const groundSpeedMps = groundSpeedKt * 0.5144444444444445;
+  const angleRad = Math.atan2(vertSpeedMps, groundSpeedMps);
+  return cleanPrecision((angleRad * 180) / Math.PI, 2);
+}
+
 /** Format the cockpit Context scope without overstating installation coverage. */
 export function formatCockpitContextScope(
   subjectLabel,
