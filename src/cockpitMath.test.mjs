@@ -30,6 +30,9 @@ import {
   rateOfTurnDegPerSec,
   trueAirspeedToMach,
   glidePathAngleDeg,
+  crosswindComponents,
+  pressureAltitudeFt,
+  densityAltitudeFt,
   destinationCoordinate,
   cockpitGroundSafeHeight,
   cockpitSurfaceWaitExpired,
@@ -605,4 +608,48 @@ test('glidePathAngleDeg computes flight path angle and guards invalid speeds', (
   assert.equal(glidePathAngleDeg(-500, -100), null);
   assert.equal(glidePathAngleDeg(NaN, 140), null);
   assert.equal(glidePathAngleDeg(-500, NaN), null);
+});
+
+test('crosswindComponents calculates headwind and crosswind correctly', () => {
+  // Direct headwind (wind from 360, heading 360)
+  const directHeadwind = crosswindComponents(20, 360, 360);
+  assert.equal(directHeadwind.headwindKt, 20);
+  assert.equal(directHeadwind.crosswindKt, 0);
+
+  // Direct 90-degree right crosswind (wind from 090, heading 360)
+  const rightCrosswind = crosswindComponents(15, 90, 360);
+  assert.equal(rightCrosswind.headwindKt, 0);
+  assert.equal(rightCrosswind.crosswindKt, 15);
+
+  // Direct tailwind (wind from 180, heading 360)
+  const directTailwind = crosswindComponents(10, 180, 360);
+  assert.equal(directTailwind.headwindKt, -10);
+  assert.equal(directTailwind.crosswindKt, 0);
+
+  // Guards
+  assert.equal(crosswindComponents(-5, 90, 360), null);
+  assert.equal(crosswindComponents(NaN, 90, 360), null);
+});
+
+test('pressureAltitudeFt and densityAltitudeFt calculate atmospheric altitudes accurately', () => {
+  // Standard sea-level altimeter (29.92 inHg) at 5,000 ft
+  const paStd = pressureAltitudeFt(5000, 29.92126);
+  assert.equal(paStd, 5000);
+
+  // Low pressure system: 29.42 inHg increases pressure altitude by ~500 ft
+  const paLow = pressureAltitudeFt(5000, 29.42);
+  assert.ok(paLow > 5490 && paLow < 5510);
+
+  // Density altitude at standard ISA atmosphere (at 0 ft, ISA temp is 15C)
+  const daStd = densityAltitudeFt(0, 15);
+  assert.equal(daStd, 0);
+
+  // Hot day at sea level (+35C, standard is +15C) -> DA = 0 + 118.8 * 20 ≈ 2376 ft
+  const daHot = densityAltitudeFt(0, 35);
+  assert.ok(daHot > 2370 && daHot < 2380);
+
+  // Guards
+  assert.equal(pressureAltitudeFt(5000, 0), null);
+  assert.equal(densityAltitudeFt(5000, -274), null);
+  assert.equal(densityAltitudeFt(NaN, 20), null);
 });
