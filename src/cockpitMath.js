@@ -232,6 +232,41 @@ export function glidePathAngleDeg(verticalSpeedFpm, groundSpeedKt) {
   return cleanPrecision((angleRad * 180) / Math.PI, 2);
 }
 
+/** Compute headwind/tailwind and crosswind components in knots given wind and runway/heading directions. */
+export function crosswindComponents(windSpeedKt, windDirectionDeg, headingDeg) {
+  if (
+    !Number.isFinite(windSpeedKt) ||
+    !Number.isFinite(windDirectionDeg) ||
+    !Number.isFinite(headingDeg)
+  )
+    return null;
+  if (windSpeedKt < 0) return null;
+  const angleRad = ((windDirectionDeg - headingDeg) * Math.PI) / 180;
+  const headwind = windSpeedKt * Math.cos(angleRad);
+  const crosswind = windSpeedKt * Math.sin(angleRad);
+  return {
+    headwindKt: cleanPrecision(headwind, 1) || 0,
+    crosswindKt: cleanPrecision(crosswind, 1) || 0,
+  };
+}
+
+/** Compute pressure altitude in feet given indicated altitude and altimeter barometric pressure setting in inHg. */
+export function pressureAltitudeFt(indicatedAltitudeFt, altimeterInHg = 29.92) {
+  if (!Number.isFinite(indicatedAltitudeFt) || !Number.isFinite(altimeterInHg)) return null;
+  if (altimeterInHg <= 0) return null;
+  const pa = indicatedAltitudeFt + (29.92126 - altimeterInHg) * 1000;
+  return cleanPrecision(pa, 1);
+}
+
+/** Compute density altitude in feet given pressure altitude in feet and outside air temperature in Celsius. */
+export function densityAltitudeFt(pressureAltFt, tempC) {
+  if (!Number.isFinite(pressureAltFt) || !Number.isFinite(tempC)) return null;
+  if (tempC < -273.15) return null;
+  const isaTempC = 15 - 1.98 * (pressureAltFt / 1000);
+  const da = pressureAltFt + 118.8 * (tempC - isaTempC);
+  return cleanPrecision(da, 1);
+}
+
 /** Format the cockpit Context scope without overstating installation coverage. */
 export function formatCockpitContextScope(
   subjectLabel,
