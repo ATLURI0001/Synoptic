@@ -27,6 +27,9 @@ import {
   knotsToMph,
   mphToKnots,
   turnRadiusMeters,
+  rateOfTurnDegPerSec,
+  trueAirspeedToMach,
+  glidePathAngleDeg,
   destinationCoordinate,
   cockpitGroundSafeHeight,
   cockpitSurfaceWaitExpired,
@@ -549,4 +552,57 @@ test('turnRadiusMeters calculates coordinated turn radius and guards invalid aer
   assert.equal(turnRadiusMeters(150, -15), null);
   assert.equal(turnRadiusMeters(NaN, 25), null);
   assert.equal(turnRadiusMeters(150, NaN), null);
+});
+
+test('rateOfTurnDegPerSec calculates coordinated turn rate and guards invalid aerodynamics', () => {
+  // Coordinated standard rate turn (approx 3 deg/sec) at 120 kt with ~17 deg bank
+  const rate = rateOfTurnDegPerSec(120, 17.5);
+  assert.ok(rate > 2.5 && rate < 3.5);
+
+  // Guards against non-positive speed or out-of-range bank
+  assert.equal(rateOfTurnDegPerSec(0, 20), null);
+  assert.equal(rateOfTurnDegPerSec(-50, 20), null);
+  assert.equal(rateOfTurnDegPerSec(120, 0), null);
+  assert.equal(rateOfTurnDegPerSec(120, 90), null);
+  assert.equal(rateOfTurnDegPerSec(120, -10), null);
+  assert.equal(rateOfTurnDegPerSec(NaN, 20), null);
+  assert.equal(rateOfTurnDegPerSec(120, NaN), null);
+});
+
+test('trueAirspeedToMach calculates Mach number with temperature dependence and guards', () => {
+  // Speed of sound at 15°C is approx 661.5 kt. At 661.5 kt, Mach is ~1.0
+  const m1 = trueAirspeedToMach(661.47, 15);
+  assert.equal(m1, 1);
+
+  // Cruising speed 450 kt at -50°C
+  const mCruise = trueAirspeedToMach(450, -50);
+  assert.ok(mCruise > 0.75 && mCruise < 0.85);
+
+  // Zero speed is Mach 0
+  assert.equal(trueAirspeedToMach(0, 15), 0);
+
+  // Non-finite and physically impossible temperature guards
+  assert.equal(trueAirspeedToMach(-10, 15), null);
+  assert.equal(trueAirspeedToMach(200, -274), null);
+  assert.equal(trueAirspeedToMach(NaN, 15), null);
+  assert.equal(trueAirspeedToMach(200, Infinity), null);
+});
+
+test('glidePathAngleDeg computes flight path angle and guards invalid speeds', () => {
+  // Level flight has 0 deg glide path
+  assert.equal(glidePathAngleDeg(0, 140), 0);
+
+  // Standard 3-degree descent at ~140 kt requires approx -740 fpm
+  const angle = glidePathAngleDeg(-740, 140);
+  assert.ok(angle > -3.2 && angle < -2.8);
+
+  // Climb of 2000 fpm at 160 kt
+  const climbAngle = glidePathAngleDeg(2000, 160);
+  assert.ok(climbAngle > 6.0 && climbAngle < 8.0);
+
+  // Guards against non-positive ground speed and non-finite inputs
+  assert.equal(glidePathAngleDeg(-500, 0), null);
+  assert.equal(glidePathAngleDeg(-500, -100), null);
+  assert.equal(glidePathAngleDeg(NaN, 140), null);
+  assert.equal(glidePathAngleDeg(-500, NaN), null);
 });
