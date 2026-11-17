@@ -29,6 +29,11 @@ import {
   turnRadiusMeters,
   rateOfTurnDegPerSec,
   trueAirspeedToMach,
+  isaTemperatureCelsius,
+  isaPressureHpa,
+  trueAirspeedFromMach,
+  altitudeFtToFlightLevel,
+  flightLevelToAltitudeFt,
   glidePathAngleDeg,
   crosswindComponents,
   pressureAltitudeFt,
@@ -652,4 +657,36 @@ test('pressureAltitudeFt and densityAltitudeFt calculate atmospheric altitudes a
   assert.equal(pressureAltitudeFt(5000, 0), null);
   assert.equal(densityAltitudeFt(5000, -274), null);
   assert.equal(densityAltitudeFt(NaN, 20), null);
+});
+
+test('isa atmosphere, mach true airspeed, and flight level conversions', () => {
+  // ISA Temperature: sea level 15°C, 10,000 ft ≈ -4.81°C, tropopause (36,089 ft+) -56.5°C
+  assert.equal(isaTemperatureCelsius(0), 15);
+  assert.equal(isaTemperatureCelsius(10000), -4.81);
+  assert.equal(isaTemperatureCelsius(37000), -56.5);
+  assert.equal(isaTemperatureCelsius(45000), -56.5);
+  assert.equal(isaTemperatureCelsius(NaN), null);
+
+  // ISA Pressure: sea level 1013.25 hPa, 18,000 ft ≈ 506 hPa, 36,089 ft ≈ 226.32 hPa
+  assert.equal(isaPressureHpa(0), 1013.25);
+  const p18k = isaPressureHpa(18000);
+  assert.ok(p18k > 500 && p18k < 515);
+  const pTropo = isaPressureHpa(36089.24);
+  assert.ok(pTropo > 225 && pTropo < 227);
+  assert.equal(isaPressureHpa(NaN), null);
+
+  // True airspeed from Mach at sea level (M0.8 at 15°C ≈ 529 kt)
+  const tasSeaLevel = trueAirspeedFromMach(0.8, 0);
+  assert.ok(tasSeaLevel > 525 && tasSeaLevel < 535);
+
+  // Flight Level conversions
+  assert.equal(altitudeFtToFlightLevel(35000), 'FL350');
+  assert.equal(altitudeFtToFlightLevel(8500, 5000), 'FL085');
+  assert.equal(altitudeFtToFlightLevel(12000, 18000), null); // below transition
+  assert.equal(altitudeFtToFlightLevel(NaN), null);
+
+  assert.equal(flightLevelToAltitudeFt('FL350'), 35000);
+  assert.equal(flightLevelToAltitudeFt('fl085'), 8500);
+  assert.equal(flightLevelToAltitudeFt('invalid'), null);
+  assert.equal(flightLevelToAltitudeFt(null), null);
 });
