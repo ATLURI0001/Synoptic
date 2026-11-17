@@ -267,6 +267,58 @@ export function densityAltitudeFt(pressureAltFt, tempC) {
   return cleanPrecision(da, 1);
 }
 
+/** Compute International Standard Atmosphere (ISA) temperature in Celsius at a given altitude in feet. */
+export function isaTemperatureCelsius(altitudeFt) {
+  if (!Number.isFinite(altitudeFt)) return null;
+  const h = Math.max(0, altitudeFt);
+  if (h <= 36089.24) {
+    return cleanPrecision(15 - 0.0019812 * h, 2);
+  }
+  return -56.5;
+}
+
+/** Compute International Standard Atmosphere (ISA) static pressure in hPa at a given altitude in feet. */
+export function isaPressureHpa(altitudeFt) {
+  if (!Number.isFinite(altitudeFt)) return null;
+  const h = Math.max(0, altitudeFt);
+  if (h <= 36089.24) {
+    const p = 1013.25 * (1 - 6.8755856e-6 * h) ** 5.2559;
+    return cleanPrecision(p, 2);
+  }
+  const p = 226.32 * Math.exp(-0.000048063 * (h - 36089.24));
+  return cleanPrecision(p, 2);
+}
+
+/** Convert Mach number to True Airspeed (TAS) in knots at a given altitude in feet using ISA temperature. */
+export function trueAirspeedFromMach(mach, altitudeFt = 0) {
+  if (!Number.isFinite(mach) || !Number.isFinite(altitudeFt) || mach < 0) return null;
+  const tempC = isaTemperatureCelsius(altitudeFt);
+  if (tempC == null) return null;
+  const tempK = tempC + 273.15;
+  const speedOfSoundMps = Math.sqrt(1.4 * 287.05 * tempK);
+  const speedOfSoundKt = speedOfSoundMps / 0.5144444444444445;
+  return cleanPrecision(mach * speedOfSoundKt, 1);
+}
+
+/** Convert altitude in feet to an ICAO Flight Level code string if at or above transition altitude. */
+export function altitudeFtToFlightLevel(altitudeFt, transitionAltFt = 18000) {
+  if (!Number.isFinite(altitudeFt) || !Number.isFinite(transitionAltFt)) return null;
+  if (altitudeFt < transitionAltFt) return null;
+  const flNum = Math.round(altitudeFt / 100);
+  const flStr = String(Math.max(0, flNum)).padStart(3, '0');
+  return `FL${flStr}`;
+}
+
+/** Parse an ICAO Flight Level string (e.g. 'FL350', 'fl080') into standard numeric pressure altitude in feet. */
+export function flightLevelToAltitudeFt(flightLevelStr) {
+  if (typeof flightLevelStr !== 'string') return null;
+  const match = flightLevelStr.trim().toUpperCase().match(/^FL(\d{2,3})$/);
+  if (!match) return null;
+  const flNum = parseInt(match[1], 10);
+  if (Number.isNaN(flNum)) return null;
+  return flNum * 100;
+}
+
 /** Format the cockpit Context scope without overstating installation coverage. */
 export function formatCockpitContextScope(
   subjectLabel,
